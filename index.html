@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Taby</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FF6B6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Taby">
+<meta name="mobile-web-app-capable" content="yes">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --coral: #FF6B6B;
+    --yellow: #FFD93D;
+    --mint: #6BCB77;
+    --blue: #4D96FF;
+    --purple: #C77DFF;
+    --bg: #FFF8F0;
+    --card: #FFFFFF;
+    --text: #1A1A2E;
+    --muted: #888;
+    --border: #F0E6D3;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG decoration */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, #FFD93D33 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -150px; left: -150px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, #FF6B6B22 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    padding: 24px 32px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative; z-index: 10;
+  }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+
+  .backup-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 50px;
+    border: 2px solid var(--border); background: var(--card);
+    font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .backup-btn:hover { border-color: var(--blue); color: var(--blue); transform: scale(1.04); }
+  .backup-btn.import { border-color: var(--mint); color: #1e8449; }
+  .backup-btn.import:hover { background: #6BCB7712; }
+  .backup-btn.export { border-color: var(--blue); color: var(--blue); }
+  .backup-btn.export:hover { background: #4D96FF12; }
+
+  /* Import success flash */
+  @keyframes flashGreen {
+    0%,100% { background: var(--card); }
+    50% { background: #6BCB7722; }
+  }
+  .backup-btn.flash { animation: flashGreen 0.6s ease; }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.6rem;
+    background: linear-gradient(135deg, var(--coral), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .date-badge {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 50px;
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+    box-shadow: 0 2px 12px #0000000a;
+  }
+
+  /* VOICE BAR */
+  .voice-bar {
+    margin: 20px 32px;
+    background: linear-gradient(135deg, #1A1A2E, #2d2b55);
+    border-radius: 20px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative; z-index: 10;
+    box-shadow: 0 8px 32px #1A1A2E22;
+  }
+
+  .voice-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+
+  .voice-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 0 3px #6BCB7733;
+    transition: all 0.3s;
+  }
+  .voice-dot.listening {
+    background: var(--coral);
+    box-shadow: 0 0 0 6px #FF6B6B33;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 3px #FF6B6B33; }
+    50% { box-shadow: 0 0 0 10px #FF6B6B11; }
+  }
+
+  .voice-text {
+    color: #ffffff99;
+    font-size: 0.85rem;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .voice-text strong { color: #fff; }
+
+  .voice-transcript {
+    color: var(--yellow);
+    font-size: 0.85rem;
+    font-style: italic;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mic-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--coral), var(--purple));
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mic-btn:hover { transform: scale(1.08); box-shadow: 0 4px 20px #FF6B6B55; }
+  .mic-btn.active { background: linear-gradient(135deg, var(--coral), #ff3a3a); animation: pulse 1s infinite; }
+
+  .always-on-toggle {
+    display: flex; align-items: center; gap: 8px;
+    color: #ffffff66; font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .toggle-switch {
+    width: 32px; height: 18px;
+    background: #ffffff22;
+    border-radius: 20px;
+    position: relative;
+    transition: background 0.3s;
+    cursor: pointer;
+  }
+  .toggle-switch.on { background: var(--mint); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: left 0.3s;
+  }
+  .toggle-switch.on::after { left: 17px; }
+
+  /* VOICE COMMANDS HINT */
+  .voice-hint {
+    margin: 0 32px 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    position: relative; z-index: 10;
+  }
+
+  .hint-chip {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .hint-chip span { color: var(--text); font-style: normal; font-weight: 500; }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 16px;
+    padding: 8px 32px 32px;
+    position: relative; z-index: 10;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 22px;
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 24px #0000000a;
+    transition: box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover { box-shadow: 0 8px 40px #00000014; }
+
+  .card-accent {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: 24px 24px 0 0;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .card-icon {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+
+  /* ===== TODO ===== */
+  .todo-card { grid-column: 1; grid-row: 1; }
+  .todo-card .card-accent { background: linear-gradient(90deg, var(--coral), var(--yellow)); }
+  .todo-card .card-icon { background: #FF6B6B1A; }
+
+  .todo-input-row {
+    display: flex; gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .todo-input {
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    background: var(--bg);
+    transition: border-color 0.2s;
+  }
+  .todo-input:focus { border-color: var(--coral); }
+
+  .add-btn {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--coral), var(--yellow));
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .add-btn:hover { transform: scale(1.05); }
+
+  .todo-list { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+
+  .todo-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .todo-item:hover { border-color: var(--border); }
+  .todo-item.done { opacity: 0.5; }
+  .todo-item.done .todo-label { text-decoration: line-through; }
+
+  .todo-check {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    background: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .todo-check.checked {
+    background: var(--mint);
+    border-color: var(--mint);
+    color: white;
+    font-size: 0.7rem;
+  }
+
+  .todo-label { font-size: 0.88rem; flex: 1; }
+  .todo-time { font-size: 0.75rem; color: var(--muted); }
+
+  .todo-del {
+    opacity: 0; background: none; border: none;
+    cursor: pointer; color: var(--coral);
+    font-size: 0.8rem; padding: 2px 6px;
+    border-radius: 6px; transition: opacity 0.2s;
+  }
+  .todo-item:hover .todo-del { opacity: 1; }
+
+  /* ===== HABITS ===== */
+  .habit-card { grid-column: 2; grid-row: 1; }
+  .habit-card .card-accent { background: linear-gradient(90deg, var(--mint), var(--blue)); }
+  .habit-card .card-icon { background: #6BCB771A; }
+
+  .habit-grid { display: flex; flex-direction: column; gap: 10px; }
+
+  .habit-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .habit-name { font-size: 0.88rem; flex: 1; font-weight: 500; }
+
+  .habit-dots { display: flex; gap: 5px; }
+
+  .habit-dot {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    cursor: pointer;
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    font-weight: 600;
+  }
+  .habit-dot.done {
+    background: var(--mint);
+    border-color: var(--mint);
+    color: white;
+    font-size: 0.8rem;
+  }
+
+  .habit-streak {
+    font-size: 0.75rem;
+    color: var(--yellow);
+    font-weight: 700;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .habit-add-row {
+    display: flex; gap: 8px; margin-top: 6px;
+  }
+  .habit-input {
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    background: var(--bg);
+    outline: none;
+  }
+  .habit-input:focus { border-color: var(--mint); }
+
+  /* ===== STUDY DAYS ===== */
+  .study-section { margin-top: 14px; border-top: 1.5px solid var(--border); padding-top: 14px; }
+  .study-label { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .study-week { display: flex; gap: 6px; }
+  .study-day-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+  }
+  .study-day-btn .day-num { font-size: 0.85rem; font-weight: 800; color: var(--text); }
+  .study-day-btn:hover { border-color: var(--purple); }
+  .study-day-btn.study { background: linear-gradient(135deg, var(--purple), var(--blue)); border-color: transparent; color: white; }
+  .study-day-btn.study .day-num { color: white; }
+  .study-day-btn.today-study { border-color: var(--yellow); }
+  .study-total { font-size: 0.78rem; color: var(--purple); font-weight: 700; margin-top: 8px; text-align: right; }
+  .notes-card { grid-column: 1; grid-row: 2; }
+  .notes-card .card-accent { background: linear-gradient(90deg, var(--purple), var(--blue)); }
+  .notes-card .card-icon { background: #C77DFF1A; }
+
+  .notes-area {
+    width: 100%;
+    min-height: 130px;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    resize: vertical;
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .notes-area:focus { border-color: var(--purple); }
+
+  .notes-saved {
+    font-size: 0.75rem;
+    color: var(--mint);
+    margin-top: 6px;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .notes-saved.show { opacity: 1; }
+
+  /* ===== CALENDAR ===== */
+  .calendar-card { grid-column: 2; grid-row: 2; }
+  .calendar-card .card-accent { background: linear-gradient(90deg, var(--yellow), var(--coral)); }
+  .calendar-card .card-icon { background: #FFD93D1A; }
+
+  .cal-mini {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .cal-day-name {
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 4px 0;
+  }
+
+  .cal-day {
+    text-align: center;
+    padding: 6px 2px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1.5px solid transparent;
+    position: relative;
+  }
+  .cal-day:hover { background: var(--bg); border-color: var(--border); }
+  .cal-day.today { background: linear-gradient(135deg, var(--coral), var(--yellow)); color: white; font-weight: 700; }
+  .cal-day.has-event::after {
+    content: '';
+    width: 4px; height: 4px;
+    background: var(--blue);
+    border-radius: 50%;
+    position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+  }
+  .cal-day.other-month { color: var(--muted); }
+
+  .events-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .event-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: 10px;
+    border-left: 3px solid var(--blue);
+    font-size: 0.83rem;
+  }
+  .event-time { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+  .event-title { flex: 1; font-weight: 500; }
+  .event-del { background: none; border: none; cursor: pointer; color: var(--coral); opacity: 0; transition: opacity 0.2s; font-size: 0.8rem; }
+  .event-item:hover .event-del { opacity: 1; }
+
+  /* ===== ME TIME ===== */
+  .metime-card { grid-column: 1 / -1; grid-row: 3; }
+  .metime-card .card-accent { background: linear-gradient(90deg, var(--blue), var(--purple), var(--coral)); }
+  .metime-card .card-icon { background: #4D96FF1A; }
+
+  /* ===== FINANCE ===== */
+  .finance-card { grid-column: 1 / -1; grid-row: 4; }
+  .finance-card .card-accent { background: linear-gradient(90deg, #2ECC71, #27AE60, #1ABC9C); }
+  .finance-card .card-icon { background: #2ECC711A; }
+
+  .finance-summary {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 16px;
+  }
+  .finance-stat {
+    background: var(--bg); border-radius: 14px;
+    padding: 14px 16px; border: 1.5px solid var(--border);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .finance-stat-label { font-size: 0.72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+  .finance-stat-value { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; }
+  .finance-stat-value.income { color: #2ECC71; }
+  .finance-stat-value.expense { color: var(--coral); }
+  .finance-stat-value.balance.positive { color: #2ECC71; }
+  .finance-stat-value.balance.negative { color: var(--coral); }
+  .finance-stat-sub { font-size: 0.72rem; color: var(--muted); }
+
+  .finance-input-row {
+    display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .finance-input {
+    flex: 1; min-width: 140px;
+    border: 2px solid var(--border); border-radius: 12px;
+    padding: 10px 14px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; outline: none; background: var(--bg);
+    transition: border-color 0.2s;
+  }
+  .finance-input:focus { border-color: #2ECC71; }
+  .finance-amount-input {
+    width: 120px; flex: none;
+    border: 2px solid var(--border); border-radius: 12px;
+    padding: 10px 14px; font-family: 'Syne', sans-serif;
+    font-size: 0.95rem; font-weight: 700; outline: none; background: var(--bg);
+    transition: border-color 0.2s;
+  }
+  .finance-amount-input:focus { border-color: #2ECC71; }
+
+  .type-toggle {
+    display: flex; border-radius: 12px; overflow: hidden;
+    border: 2px solid var(--border); flex-shrink: 0;
+  }
+  .type-btn {
+    padding: 0 16px; border: none; background: var(--bg);
+    font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+    color: var(--muted);
+  }
+  .type-btn.active-expense { background: var(--coral); color: white; }
+  .type-btn.active-income  { background: #2ECC71; color: white; }
+
+  .finance-list { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+
+  .finance-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: var(--bg);
+    border-radius: 12px; border: 1.5px solid transparent;
+    transition: all 0.2s; font-size: 0.86rem;
+  }
+  .finance-item:hover { border-color: var(--border); }
+  .finance-item-icon { font-size: 1rem; flex-shrink: 0; }
+  .finance-item-label { flex: 1; font-weight: 500; }
+  .finance-item-date { font-size: 0.72rem; color: var(--muted); }
+  .finance-item-amount { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; flex-shrink: 0; }
+  .finance-item-amount.income { color: #2ECC71; }
+  .finance-item-amount.expense { color: var(--coral); }
+  .finance-item-del { background: none; border: none; cursor: pointer; color: var(--coral); opacity: 0; font-size: 0.8rem; transition: opacity 0.2s; }
+  .finance-item:hover .finance-item-del { opacity: 1; }
+
+  .finance-tabs {
+    display: flex; gap: 6px; margin-bottom: 12px;
+  }
+  .ftab {
+    padding: 5px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: var(--bg);
+    font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    color: var(--muted); transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .ftab.active { background: #2ECC71; border-color: #2ECC71; color: white; }
+
+  .metime-inner { display: flex; gap: 20px; align-items: flex-start; }
+
+  .metime-timer-section { display: flex; flex-direction: column; align-items: center; gap: 12px; flex-shrink: 0; }
+
+  .timer-ring {
+    width: 110px; height: 110px;
+    position: relative;
+  }
+
+  .timer-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .timer-ring-track { fill: none; stroke: var(--border); stroke-width: 8; }
+  .timer-ring-progress { fill: none; stroke: url(#timerGrad); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 283; stroke-dashoffset: 283; transition: stroke-dashoffset 1s linear; }
+
+  .timer-display {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+
+  .timer-controls { display: flex; gap: 8px; }
+
+  .timer-btn {
+    padding: 7px 16px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .timer-btn:hover { transform: scale(1.04); }
+  .timer-btn.start { background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; }
+  .timer-btn.reset { background: var(--bg); color: var(--muted); border: 2px solid var(--border); }
+
+  .timer-presets { display: flex; gap: 6px; }
+  .preset-btn {
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .preset-btn:hover, .preset-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+  .metime-right { flex: 1; }
+
+  .metime-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .metime-activities { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+
+  .activity-chip {
+    padding: 7px 14px;
+    border-radius: 50px;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .activity-chip:hover { border-color: var(--blue); }
+  .activity-chip.selected { background: linear-gradient(135deg, var(--blue), var(--purple)); border-color: transparent; color: white; }
+
+  .metime-note {
+    width: 100%;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+    height: 60px;
+  }
+  .metime-note:focus { border-color: var(--blue); }
+
+  /* ===== FINANCE ===== */
+  .finance-card { grid-column: 1 / -1; grid-row: 4; }
+  .finance-card .card-accent { background: linear-gradient(90deg, #2ECC71, #1ABC9C); }
+  .finance-card .card-icon { background: #2ECC7115; }
+
+  .finance-summary {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 16px;
+  }
+
+  .fin-stat {
+    background: var(--bg); border-radius: 16px;
+    padding: 14px 16px; border: 1.5px solid var(--border);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .fin-stat-label { font-size: 0.72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+  .fin-stat-value { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; }
+  .fin-stat-value.income { color: #2ECC71; }
+  .fin-stat-value.expense { color: var(--coral); }
+  .fin-stat-value.balance.positive { color: #2ECC71; }
+  .fin-stat-value.balance.negative { color: var(--coral); }
+  .fin-stat-sub { font-size: 0.72rem; color: var(--muted); }
+
+  .finance-input-row {
+    display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+
+  .fin-input {
+    flex: 1; min-width: 120px;
+    border: 2px solid var(--border); border-radius: 12px;
+    padding: 10px 14px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; outline: none; background: var(--bg);
+    transition: border-color 0.2s;
+  }
+  .fin-input:focus { border-color: #2ECC71; }
+
+  .fin-amount-wrap { position: relative; display: flex; align-items: center; }
+  .fin-currency {
+    position: absolute; left: 12px;
+    font-size: 0.9rem; color: var(--muted); font-weight: 600; pointer-events: none;
+  }
+  .fin-amount { padding-left: 26px !important; width: 110px; }
+
+  .fin-type-toggle { display: flex; gap: 6px; }
+  .fin-type-btn {
+    padding: 10px 16px; border-radius: 12px; border: 2px solid var(--border);
+    background: var(--bg); font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+  }
+  .fin-type-btn.expense.active { background: #FF6B6B15; border-color: var(--coral); color: var(--coral); }
+  .fin-type-btn.income.active { background: #2ECC7115; border-color: #2ECC71; color: #2ECC71; }
+
+  .fin-add-btn {
+    padding: 10px 18px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, #2ECC71, #1ABC9C);
+    color: white; font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; transition: transform 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+  }
+  .fin-add-btn:hover { transform: scale(1.04); }
+
+  .fin-list { display: flex; flex-direction: column; gap: 7px; max-height: 200px; overflow-y: auto; }
+
+  .fin-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: var(--bg);
+    border-radius: 12px; border: 1.5px solid transparent;
+    transition: all 0.2s; animation: slideIn 0.2s ease;
+  }
+  .fin-item:hover { border-color: var(--border); }
+  .fin-item-icon { font-size: 1rem; flex-shrink: 0; }
+  .fin-item-label { flex: 1; font-size: 0.87rem; font-weight: 500; }
+  .fin-item-time { font-size: 0.72rem; color: var(--muted); }
+  .fin-item-amount { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+  .fin-item-amount.expense { color: var(--coral); }
+  .fin-item-amount.income { color: #2ECC71; }
+  .fin-item-del { background: none; border: none; cursor: pointer; color: var(--muted); opacity: 0; font-size: 0.8rem; transition: opacity 0.2s; }
+  .fin-item:hover .fin-item-del { opacity: 1; }
+
+  .fin-period-tabs { display: flex; gap: 6px; }
+  .fin-tab {
+    padding: 5px 12px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--bg); font-size: 0.75rem; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; color: var(--muted);
+    transition: all 0.2s; font-weight: 500;
+  }
+  .fin-tab.active { background: #1ABC9C; color: white; border-color: #1ABC9C; }
+
+  .fin-empty { font-size: 0.82rem; color: var(--muted); text-align: center; padding: 20px 0; }
+  .voice-feedback {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1A1A2E;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 0.88rem;
+    z-index: 1000;
+    box-shadow: 0 8px 40px #00000033;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .voice-feedback.show { transform: translateX(-50%) translateY(0); }
+  .voice-feedback .fb-icon { font-size: 1.1rem; }
+  .voice-feedback .fb-text span { color: var(--yellow); font-weight: 600; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Animations */
+  .card { animation: fadeUp 0.5s ease both; }
+  .todo-card { animation-delay: 0.1s; }
+  .habit-card { animation-delay: 0.15s; }
+  .notes-card { animation-delay: 0.2s; }
+  .calendar-card { animation-delay: 0.25s; }
+  .metime-card { animation-delay: 0.3s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .todo-item { animation: slideIn 0.25s ease; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* STATS CARD */
+  .stats-card { grid-column: 1 / -1; }
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 20px;
+  }
+  .stat-box {
+    background: var(--bg); border-radius: 16px;
+    padding: 16px; border: 1.5px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    text-align: center;
+  }
+  .stat-box-icon { font-size: 1.5rem; }
+  .stat-box-val {
+    font-family: 'Syne', sans-serif; font-size: 1.6rem;
+    font-weight: 800; line-height: 1;
+  }
+  .stat-box-label { font-size: 0.72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+
+  .stats-chart { display: flex; flex-direction: column; gap: 10px; }
+  .stats-bar-row { display: flex; align-items: center; gap: 10px; }
+  .stats-bar-label { font-size: 0.78rem; color: var(--muted); width: 80px; text-align: right; flex-shrink: 0; }
+  .stats-bar-track { flex: 1; height: 10px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .stats-bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(0.34,1.2,0.64,1); }
+  .stats-bar-val { font-size: 0.75rem; font-weight: 700; width: 36px; flex-shrink: 0; }
+
+  /* NOTIFICATION BELL */
+  .notif-btn {
+    position: fixed; bottom: 90px; right: 20px;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border: none; cursor: pointer; font-size: 1.3rem;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px #4D96FF44; z-index: 100;
+    transition: transform 0.2s;
+  }
+  .notif-btn:hover { transform: scale(1.1); }
+  .notif-badge {
+    position: absolute; top: -4px; right: -4px;
+    background: var(--coral); color: white;
+    font-size: 0.6rem; font-weight: 800;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    display: none;
+  }
+
+  /* WEEK RESET BANNER */
+  .week-reset-banner {
+    background: linear-gradient(135deg, var(--mint), var(--blue));
+    color: white; padding: 14px 20px; border-radius: 16px;
+    margin: 0 20px 12px; display: none;
+    align-items: center; gap: 12px; font-size: 0.88rem;
+    animation: fadeUp 0.4s ease;
+  }
+  .week-reset-banner.show { display: flex; }
+  .week-reset-banner strong { font-weight: 700; }
+  .week-reset-close { margin-left: auto; background: none; border: none; color: white; cursor: pointer; font-size: 1rem; }
+
+  /* MOOD TRACKER */
+  .mood-card {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #fff8f0 0%, #fff0f8 100%);
+  }
+  .mood-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .mood-btn {
+    flex: 1; min-width: 54px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 12px 8px; border-radius: 16px;
+    border: 2.5px solid transparent; background: var(--bg);
+    cursor: pointer; transition: all 0.2s; font-size: 1.6rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mood-btn span { font-size: 0.68rem; color: var(--muted); font-weight: 600; }
+  .mood-btn:hover { transform: scale(1.08); }
+  .mood-btn.selected { border-color: var(--purple); background: #C77DFF15; transform: scale(1.12); box-shadow: 0 4px 16px #C77DFF33; }
+  .mood-btn.selected span { color: var(--purple); }
+
+  .mood-suggestion {
+    padding: 12px 16px; border-radius: 14px;
+    font-size: 0.85rem; line-height: 1.5;
+    display: none; animation: fadeUp 0.3s ease;
+  }
+  .mood-suggestion.show { display: block; }
+  .mood-suggestion.warn { background: #FF6B6B12; border: 1.5px solid #FF6B6B44; color: #c0392b; }
+  .mood-suggestion.ok { background: #6BCB7712; border: 1.5px solid #6BCB7744; color: #1e8449; }
+  .mood-suggestion.neutral { background: #FFD93D12; border: 1.5px solid #FFD93D55; color: #7d6608; }
+
+  .mood-history {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .mood-history-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 0.7rem; color: var(--muted);
+  }
+  .mood-history-item .mhi-emoji { font-size: 1.1rem; }
+
+  /* CALENDAR MODAL */
+  .cal-modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: #00000055; backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .cal-modal-overlay.open { opacity: 1; pointer-events: all; }
+  .cal-modal {
+    background: white; border-radius: 24px;
+    padding: 24px; width: 100%; max-width: 380px;
+    box-shadow: 0 20px 60px #00000033;
+    transform: translateY(20px); transition: transform 0.25s;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .cal-modal-overlay.open .cal-modal { transform: translateY(0); }
+  .cal-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .cal-modal-title {
+    font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700;
+  }
+  .cal-modal-close {
+    width: 32px; height: 32px; border-radius: 50%; border: none;
+    background: var(--bg); cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cal-modal-events { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .cal-modal-empty { font-size: 0.85rem; color: var(--muted); text-align: center; padding: 12px 0; }
+  .cal-modal-add {
+    display: flex; flex-direction: column; gap: 8px;
+    padding-top: 14px; border-top: 1.5px solid var(--border);
+  }
+  .cal-modal-add input {
+    border: 2px solid var(--border); border-radius: 12px;
+    padding: 10px 14px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; outline: none; background: var(--bg);
+    transition: border-color 0.2s;
+  }
+  .cal-modal-add input:focus { border-color: var(--blue); }
+  .cal-modal-add-row { display: flex; gap: 8px; }
+  .cal-modal-save {
+    flex: 1; padding: 10px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color: white; font-weight: 700; font-size: 0.88rem;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: transform 0.15s;
+  }
+  .cal-modal-save:hover { transform: scale(1.03); }
+
+  @media (max-width: 700px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .metime-card, .stats-card, .mood-card { grid-column: 1; }
+    header { padding: 16px 16px 0; }
+    .voice-bar, .voice-hint, .main-grid { margin-left: 16px; margin-right: 16px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">✦ Taby</div>
+  <div class="header-actions">
+    <button class="backup-btn export" onclick="exportData()" title="Tüm verilerini indir">⬇ Yedek Al</button>
+    <button class="backup-btn import" onclick="document.getElementById('importInput').click()" title="Yedekten geri yükle">⬆ Yükle</button>
+    <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+    <div class="date-badge" id="dateBadge"></div>
+  </div>
+</header>
+
+<!-- WEEK RESET BANNER -->
+<div class="week-reset-banner" id="weekResetBanner">
+  🎉 <span><strong>Yeni hafta!</strong> Devam eden görevler taşındı.</span>
+  <button class="week-reset-close" onclick="document.getElementById('weekResetBanner').classList.remove('show')">✕</button>
+</div>
+
+<div class="voice-bar">
+  <div class="voice-status">
+    <div class="voice-dot" id="voiceDot"></div>
+    <div>
+      <div class="voice-text" id="voiceStatusText">Taby <strong>dinliyor</strong></div>
+      <div class="voice-transcript" id="voiceTranscript">"Taby..." diyerek başla</div>
+    </div>
+  </div>
+  <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Mikrofonu aç/kapat">🎙️</button>
+  <div onclick="window._switchLang && window._switchLang()" id="langIndicator" style="cursor:pointer;background:#ffffff15;border-radius:20px;padding:5px 12px;font-size:0.78rem;color:white;font-weight:700;white-space:nowrap;transition:background 0.2s" title="Dil değiştir">🇹🇷 TR</div>
+  <div class="always-on-toggle" onclick="toggleAlwaysOn()">
+    <span>Sürekli dinle</span>
+    <div class="toggle-switch" id="alwaysOnToggle"></div>
+  </div>
+</div>
+
+<div class="voice-hint">
+  <div class="hint-chip">🎙 <span>"Taby yapılacak ekle: toplantı 14:00"</span></div>
+  <div class="hint-chip">🎙 <span>"Taby vitamin içtim"</span></div>
+  <div class="hint-chip">🎙 <span>"Taby ders çalıştım"</span></div>
+  <div class="hint-chip">🎙 <span>"Taby not al: iyi bir gündü"</span></div>
+  <div class="hint-chip">🎙 <span>"Taby 25 dakika başlat"</span></div>
+</div>
+
+<div class="main-grid">
+
+  <!-- TODO -->
+  <div class="card todo-card">
+    <div class="card-accent"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon">✅</div>
+        Görevlerim
+      </div>
+      <div style="font-size:0.8rem;color:var(--muted)" id="todoProgress">0/0</div>
+    </div>
+    <div class="todo-input-row">
+      <input class="todo-input" id="todoInput" placeholder="Yeni görev ekle..." onkeydown="if(event.key==='Enter')addTodo()">
+      <input type="time" id="todoTime" style="border:2px solid var(--border);border-radius:10px;padding:8px;background:var(--bg);outline:none;font-family:'DM Sans';font-size:0.82rem;color:var(--text)">
+      <button class="add-btn" onclick="addTodo()">+</button>
+    </div>
+    <div class="todo-list" id="todoList"></div>
+  </div>
+
+  <!-- HABITS -->
+  <div class="card habit-card">
+    <div class="card-accent"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon">🔥</div>
+        Alışkanlıklar
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted)">Son 7 gün</div>
+    </div>
+    <div class="habit-grid" id="habitGrid"></div>
+    <div class="habit-add-row" style="margin-top:10px">
+      <input class="habit-input" id="habitInput" placeholder="Yeni alışkanlık..." onkeydown="if(event.key==='Enter')addHabit()">
+      <button class="add-btn" style="background:linear-gradient(135deg,var(--mint),var(--blue))" onclick="addHabit()">+</button>
+    </div>
+    <div class="study-section">
+      <div class="study-label">📚 Ders Çalışma Günleri</div>
+      <div class="study-week" id="studyWeek"></div>
+      <div class="study-total" id="studyTotal"></div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="card notes-card">
+    <div class="card-accent"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon">📝</div>
+        Notlarım
+      </div>
+      <button onclick="clearNotes()" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--muted)">temizle</button>
+    </div>
+    <textarea class="notes-area" id="notesArea" placeholder="Aklına geleni buraya yaz... Sesli komutla da not ekleyebilirsin 🎙️" oninput="autoSaveNote()"></textarea>
+    <div class="notes-saved" id="notesSaved">✓ Kaydedildi</div>
+  </div>
+
+  <!-- MOOD TRACKER -->
+  <div class="card mood-card">
+    <div class="card-accent" style="background:linear-gradient(90deg,var(--purple),var(--coral))"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon" style="background:#C77DFF15">🌈</div>
+        Bugün Nasıl Hissediyorsun?
+      </div>
+      <span style="font-size:0.75rem;color:var(--muted)" id="moodTimeLabel"></span>
+    </div>
+    <div class="mood-row" id="moodRow">
+      <button class="mood-btn" onclick="setMood(5,'😄','Harika')" data-val="5">😄<span>Harika</span></button>
+      <button class="mood-btn" onclick="setMood(4,'🙂','İyi')" data-val="4">🙂<span>İyi</span></button>
+      <button class="mood-btn" onclick="setMood(3,'😐','Orta')" data-val="3">😐<span>Orta</span></button>
+      <button class="mood-btn" onclick="setMood(2,'😔','Kötü')" data-val="2">😔<span>Kötü</span></button>
+      <button class="mood-btn" onclick="setMood(1,'😞','Berbat')" data-val="1">😞<span>Berbat</span></button>
+    </div>
+    <div class="mood-suggestion" id="moodSuggestion"></div>
+    <div class="mood-history" id="moodHistory"></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="card calendar-card">
+    <div class="card-accent"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon">📅</div>
+        Takvim
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="changeMonth(-1)" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:0.9rem">‹</button>
+        <button onclick="changeMonth(1)" style="background:var(--bg);border:1.5px solid var(--border);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:0.9rem">›</button>
+      </div>
+    </div>
+    <div id="calMonthLabel" style="font-size:0.78rem;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px"></div>
+    <div class="cal-mini" id="calGrid"></div>
+    <div class="events-list" id="eventsList"></div>
+  </div>
+
+  <!-- ME TIME -->
+  <div class="card metime-card">
+    <div class="card-accent"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon">💆</div>
+        Kendine Zaman
+      </div>
+    </div>
+    <div class="metime-inner">
+      <div class="metime-timer-section">
+        <div class="timer-ring">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <defs>
+              <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#4D96FF"/>
+                <stop offset="100%" style="stop-color:#C77DFF"/>
+              </linearGradient>
+            </defs>
+            <circle class="timer-ring-track" cx="55" cy="55" r="45"/>
+            <circle class="timer-ring-progress" id="timerRing" cx="55" cy="55" r="45"/>
+          </svg>
+          <div class="timer-display" id="timerDisplay">25:00</div>
+        </div>
+        <div class="timer-presets">
+          <button class="preset-btn active" onclick="setTimer(25)" data-min="25">25dk</button>
+          <button class="preset-btn" onclick="setTimer(10)" data-min="10">10dk</button>
+          <button class="preset-btn" onclick="setTimer(5)" data-min="5">5dk</button>
+        </div>
+        <div class="timer-controls">
+          <button class="timer-btn start" id="timerStartBtn" onclick="toggleTimer()">▶ Başla</button>
+          <button class="timer-btn reset" onclick="resetTimer()">↺</button>
+        </div>
+      </div>
+      <div class="metime-right">
+        <div class="metime-label">Aktivite seç</div>
+        <div class="metime-activities" id="meTimeActivities">
+          <div class="activity-chip" onclick="toggleActivity(this)">🧘 Meditasyon</div>
+          <div class="activity-chip" onclick="toggleActivity(this)">📚 Okuma</div>
+          <div class="activity-chip" onclick="toggleActivity(this)">🎵 Müzik</div>
+          <div class="activity-chip" onclick="toggleActivity(this)">🚶 Yürüyüş</div>
+          <div class="activity-chip" onclick="toggleActivity(this)">✍️ Günlük yazma</div>
+          <div class="activity-chip" onclick="toggleActivity(this)">🎨 Yaratıcılık</div>
+          <div class="activity-chip" onclick="toggleActivity(this)">😴 Dinlenme</div>
+          <div class="activity-chip" onclick="toggleActivity(this)">🌿 Doğa</div>
+        </div>
+        <textarea class="metime-note" placeholder="Bu zaman dilimi için not al..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINANCE CARD -->
+  <div class="card finance-card">
+    <div class="card-accent" style="background:linear-gradient(90deg,#2ECC71,#1ABC9C)"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon" style="background:#2ECC7115">💰</div>
+        Günlük Finans
+      </div>
+      <div class="fin-period-tabs">
+        <button class="fin-tab active" onclick="setFinPeriod('today',this)">Bugün</button>
+        <button class="fin-tab" onclick="setFinPeriod('week',this)">Hafta</button>
+        <button class="fin-tab" onclick="setFinPeriod('month',this)">Ay</button>
+      </div>
+    </div>
+    <div class="finance-summary">
+      <div class="fin-stat">
+        <span class="fin-stat-label">Gelir</span>
+        <span class="fin-stat-value income" id="finIncome">$0</span>
+        <span class="fin-stat-sub" id="finIncomeCount">0 kayıt</span>
+      </div>
+      <div class="fin-stat">
+        <span class="fin-stat-label">Gider</span>
+        <span class="fin-stat-value expense" id="finExpense">$0</span>
+        <span class="fin-stat-sub" id="finExpenseCount">0 kayıt</span>
+      </div>
+      <div class="fin-stat">
+        <span class="fin-stat-label">Net</span>
+        <span class="fin-stat-value balance" id="finBalance">$0</span>
+        <span class="fin-stat-sub" id="finBalanceSub">—</span>
+      </div>
+    </div>
+    <div class="finance-input-row">
+      <input class="fin-input" id="finDesc" placeholder="Açıklama (örn: Kahve)" onkeydown="if(event.key==='Enter')addFinance()">
+      <div class="fin-amount-wrap">
+        <span class="fin-currency">CA$</span>
+        <input class="fin-input fin-amount" id="finAmount" type="number" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="fin-type-toggle">
+        <button class="fin-type-btn expense active" id="finTypeExpense" onclick="setFinType('expense')">− Gider</button>
+        <button class="fin-type-btn income" id="finTypeIncome" onclick="setFinType('income')">+ Gelir</button>
+      </div>
+      <button class="fin-add-btn" onclick="addFinance()">Ekle</button>
+    </div>
+    <div class="fin-list" id="finList"></div>
+  </div>
+
+  <!-- WEEKLY STATS CARD -->
+  <div class="card stats-card">
+    <div class="card-accent" style="background:linear-gradient(90deg,var(--blue),var(--purple))"></div>
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-icon" style="background:#4D96FF15">📊</div>
+        Haftalık Özet
+      </div>
+      <span style="font-size:0.75rem;color:var(--muted)" id="statsWeekLabel"></span>
+    </div>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="stats-chart" id="statsChart"></div>
+  </div>
+
+</div>
+
+<!-- NOTIF BELL -->
+<button class="notif-btn" onclick="showNotifPanel()" title="Bildirimler">
+  🔔
+  <span class="notif-badge" id="notifBadge">0</span>
+</button>
+
+<!-- CALENDAR DAY MODAL -->
+<div class="cal-modal-overlay" id="calModalOverlay" onclick="closeCalModal(event)">
+  <div class="cal-modal">
+    <div class="cal-modal-header">
+      <div class="cal-modal-title" id="calModalTitle">📅 Gün</div>
+      <button class="cal-modal-close" onclick="closeCalModal()">✕</button>
+    </div>
+    <div class="cal-modal-events" id="calModalEvents"></div>
+    <div class="cal-modal-add">
+      <input id="calModalDesc" placeholder="Etkinlik adı..." onkeydown="if(event.key==='Enter')saveCalModal()">
+      <div class="cal-modal-add-row">
+        <input id="calModalTime" type="time" style="width:120px">
+        <button class="cal-modal-save" onclick="saveCalModal()">+ Ekle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VOICE FEEDBACK TOAST -->
+<div class="voice-feedback" id="voiceFeedback">
+  <span class="fb-icon">✨</span>
+  <span class="fb-text" id="voiceFeedbackText"></span>
+</div>
+
+<script>
+// ==================== SECURITY: AES-256 ENCRYPTION (no PIN screen) ====================
+const SALT = 'taby_v1_secure';
+// Derive a fixed device key from a stable device fingerprint
+async function getDeviceKey() {
+  const fp = navigator.userAgent + screen.width + screen.height + navigator.language + SALT;
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(fp), { name: 'PBKDF2' }, false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: enc.encode(SALT), iterations: 100000, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  return await crypto.subtle.importKey('raw', bits, { name: 'AES-GCM' }, false, ['encrypt','decrypt']);
+}
+
+async function encryptData(data, key) {
+  const enc = new TextEncoder();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(data)));
+  const buf = new Uint8Array(iv.byteLength + encrypted.byteLength);
+  buf.set(iv, 0); buf.set(new Uint8Array(encrypted), iv.byteLength);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function decryptData(b64, key) {
+  try {
+    const buf = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const iv = buf.slice(0, 12);
+    const data = buf.slice(12);
+    const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+    return JSON.parse(new TextDecoder().decode(dec));
+  } catch { return null; }
+}
+
+let sessionKey = null;
+
+async function saveAllEncrypted() {
+  if (!sessionKey) return;
+  const payload = { todos, habits, studyDays, events, notes, finances, moodHistory, savedAt: Date.now() };
+  const enc = await encryptData(payload, sessionKey);
+  localStorage.setItem('taby_data', enc);
+  ['todos','habits','studyDays','events','notes'].forEach(k => localStorage.removeItem(k));
+}
+
+async function loadAllDecrypted() {
+  if (!sessionKey) return;
+  const enc = localStorage.getItem('taby_data');
+  if (!enc) return;
+  const data = await decryptData(enc, sessionKey);
+  if (!data) return;
+  todos       = data.todos       || [];
+  habits      = data.habits      || [{ name:'💊 Vitamin al', done:[false,false,false,false,false,false,false], streak:0 }];
+  studyDays   = data.studyDays   || [];
+  events      = data.events      || [];
+  notes       = data.notes       || '';
+  finances    = data.finances    || [];
+  moodHistory = data.moodHistory || [];
+}
+
+async function initSecurity() {
+  sessionKey = await getDeviceKey();
+  await loadAllDecrypted();
+}
+
+// ==================== STATE ====================
+let todos = [];
+let habits = [{ name: '💊 Vitamin al', done: [false,false,false,false,false,false,false], streak: 0 }];
+let studyDays = [];
+let events = [];
+let notes = '';
+let finances = [];
+let moodHistory = [];
+let finPeriod = 'today';
+let finType = 'expense';
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let timerInterval = null;
+let timerSeconds = 25 * 60;
+let timerTotal = 25 * 60;
+let timerRunning = false;
+let alwaysOn = false;
+let recognition = null;
+let notesSaveTimer = null;
+
+// ==================== EXPORT / IMPORT ====================
+async function exportData() {
+  const payload = {
+    _taby_version: 1,
+    _exported_at: new Date().toISOString(),
+    todos, habits, studyDays, events, notes, finances, moodHistory
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `taby-yedek-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showFeedback('⬇', 'Yedek dosyası <span>indirildi</span> ✓');
+}
+
+async function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data._taby_version) {
+      showFeedback('⚠️', 'Geçersiz <span>yedek dosyası</span>');
+      return;
+    }
+    if (!confirm(`📦 ${file.name} yüklensin mi?\n\nMevcut verilerinin üzerine yazılacak.`)) return;
+
+    todos       = data.todos       || [];
+    habits      = data.habits      || [];
+    studyDays   = data.studyDays   || [];
+    events      = data.events      || [];
+    notes       = data.notes       || '';
+    finances    = data.finances    || [];
+    moodHistory = data.moodHistory || [];
+
+    await saveAllEncrypted();
+
+    // Refresh all UI
+    renderTodos(); renderHabits(); renderStudyDays();
+    renderCalendar(); renderEvents();
+    renderFinance(); renderStats();
+    initMood();
+    const na = document.getElementById('notesArea');
+    if (na) na.value = notes;
+
+    // Flash button green
+    const btn = document.querySelector('.backup-btn.import');
+    btn.classList.add('flash');
+    setTimeout(() => btn.classList.remove('flash'), 700);
+
+    showFeedback('⬆', `Yedek <span>yüklendi</span> ✓`);
+  } catch(e) {
+    showFeedback('⚠️', 'Dosya <span>okunamadı</span>');
+  }
+  event.target.value = '';
+}
+
+// ==================== INIT ====================
+async function init() {
+  await initSecurity();
+  const now = new Date();
+  const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+  document.getElementById('dateBadge').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  checkWeekReset();
+  renderTodos(); renderHabits(); renderStudyDays();
+  renderCalendar(); renderEvents();
+  renderFinance(); renderStats();
+  initMood();
+  const na = document.getElementById('notesArea');
+  if (na) na.value = notes;
+  setupVoice();
+  initNotifications();
+}
+
+// ==================== WEEK RESET ====================
+function getWeekKey() {
+  const now = new Date();
+  const monday = new Date(now);
+  const day = now.getDay();
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  return `${monday.getFullYear()}-W${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+}
+
+function checkWeekReset() {
+  const currentWeek = getWeekKey();
+  const lastWeek = localStorage.getItem('taby_last_week');
+  if (lastWeek && lastWeek !== currentWeek) {
+    // New week! carry over incomplete todos
+    const carried = todos.filter(t => !t.done && !t.weeklyCarried);
+    const completed = todos.filter(t => t.done);
+    // Archive last week's completed todos (keep last 4 weeks)
+    let archive = JSON.parse(localStorage.getItem('taby_archive') || '[]');
+    archive.push({ week: lastWeek, todos: completed, studyDays: [...studyDays], finances: finances.filter(f => {
+      const d = new Date(f.date);
+      return d >= new Date(lastWeek.replace('W','').replace('-','-').split('-').slice(0,1).join(''));
+    })});
+    if (archive.length > 4) archive = archive.slice(-4);
+    localStorage.setItem('taby_archive', JSON.stringify(archive));
+
+    // Reset habits for new week
+    habits = habits.map(h => ({ ...h, done: [false,false,false,false,false,false,false] }));
+
+    // Keep only carried todos + mark them
+    todos = carried.map(t => ({ ...t, weeklyCarried: true }));
+
+    saveAllEncrypted();
+    if (carried.length > 0 || true) {
+      document.getElementById('weekResetBanner').querySelector('span').innerHTML =
+        `🎉 <strong>Yeni hafta!</strong> ${carried.length > 0 ? carried.length + ' devam eden görev taşındı.' : 'Temiz bir başlangıç!'}`;
+      document.getElementById('weekResetBanner').classList.add('show');
+      setTimeout(() => document.getElementById('weekResetBanner').classList.remove('show'), 8000);
+    }
+  }
+  localStorage.setItem('taby_last_week', currentWeek);
+}
+
+// ==================== NOTIFICATIONS ====================
+async function initNotifications() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+  }
+  if (Notification.permission === 'granted') {
+    scheduleNotifications();
+  }
+}
+
+function scheduleNotifications() {
+  // Schedule reminders for today's events and todos with times
+  const now = new Date();
+  const todayStr = getTodayStr();
+
+  // Events today with time
+  events.filter(e => {
+    const d = new Date(e.date);
+    return d.toDateString() === now.toDateString() && e.time;
+  }).forEach(e => {
+    const [h, m] = e.time.split(':').map(Number);
+    const notifTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m - 15);
+    const msUntil = notifTime - now;
+    if (msUntil > 0 && msUntil < 24*60*60*1000) {
+      setTimeout(() => {
+        triggerNotif('📅 Yaklaşan Etkinlik', `${e.title} — 15 dakika kaldı!`);
+      }, msUntil);
+    }
+  });
+
+  // Todos with time
+  todos.filter(t => !t.done && t.time).forEach(t => {
+    const [h, m] = t.time.split(':').map(Number);
+    const notifTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m - 10);
+    const msUntil = notifTime - now;
+    if (msUntil > 0 && msUntil < 24*60*60*1000) {
+      setTimeout(() => {
+        triggerNotif('✅ Görev Hatırlatıcı', `"${t.label}" — 10 dakika kaldı!`);
+      }, msUntil);
+    }
+  });
+
+  // Daily summary at 21:00
+  const summaryTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 0);
+  const msUntilSummary = summaryTime - now;
+  if (msUntilSummary > 0) {
+    setTimeout(() => {
+      const done = todos.filter(t => t.done).length;
+      const total = todos.length;
+      triggerNotif('✦ Taby Günlük Özet', `Bugün ${done}/${total} görev tamamlandı. Harika bir gün! 🌟`);
+    }, msUntilSummary);
+  }
+}
+
+function triggerNotif(title, body) {
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: './icon-192.png', badge: './icon-192.png' });
+  }
+}
+
+function showNotifPanel() {
+  const pending = [];
+  const now = new Date();
+  todos.filter(t => !t.done && t.time).forEach(t => {
+    pending.push(`⏰ ${t.time} — ${t.label}`);
+  });
+  events.filter(e => new Date(e.date).toDateString() === now.toDateString() && e.time).forEach(e => {
+    pending.push(`📅 ${e.time} — ${e.title}`);
+  });
+  if (pending.length === 0) {
+    showFeedback('🔔', 'Bugün için bekleyen <span>bildirim yok</span>');
+  } else {
+    showFeedback('🔔', `<span>${pending.length} hatırlatıcı</span> aktif`);
+  }
+}
+
+// ==================== FINANCE ====================
+function setFinType(type) {
+  finType = type;
+  document.getElementById('finTypeExpense').classList.toggle('active', type === 'expense');
+  document.getElementById('finTypeIncome').classList.toggle('active', type === 'income');
+}
+
+function setFinPeriod(period, el) {
+  finPeriod = period;
+  document.querySelectorAll('.fin-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderFinance();
+}
+
+function getFinFiltered() {
+  const now = new Date();
+  return finances.filter(f => {
+    const d = new Date(f.date);
+    if (finPeriod === 'today') return d.toDateString() === now.toDateString();
+    if (finPeriod === 'week') {
+      const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+      return d >= weekAgo;
+    }
+    if (finPeriod === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return true;
+  });
+}
+
+function addFinance() {
+  const desc = document.getElementById('finDesc').value.trim();
+  const amount = parseFloat(document.getElementById('finAmount').value);
+  if (!desc || isNaN(amount) || amount <= 0) {
+    showFeedback('⚠️', 'Açıklama ve tutar <span>gerekli</span>');
+    return;
+  }
+  finances.push({ id: Date.now(), desc, amount, type: finType, date: new Date().toISOString() });
+  document.getElementById('finDesc').value = '';
+  document.getElementById('finAmount').value = '';
+  saveAllEncrypted();
+  renderFinance();
+  renderStats();
+  showFeedback(finType === 'expense' ? '💸' : '💰', `CA$${amount.toFixed(2)} <span>${finType === 'expense' ? 'gider' : 'gelir'}</span> eklendi`);
+}
+
+function deleteFinance(id) {
+  finances = finances.filter(f => f.id !== id);
+  saveAllEncrypted();
+  renderFinance();
+  renderStats();
+}
+
+function renderFinance() {
+  const filtered = getFinFiltered();
+  const income = filtered.filter(f => f.type === 'income').reduce((s,f) => s + f.amount, 0);
+  const expense = filtered.filter(f => f.type === 'expense').reduce((s,f) => s + f.amount, 0);
+  const balance = income - expense;
+
+  document.getElementById('finIncome').textContent = `CA$${income.toFixed(2)}`;
+  document.getElementById('finExpense').textContent = `CA$${expense.toFixed(2)}`;
+  const balEl = document.getElementById('finBalance');
+  balEl.textContent = `CA$${Math.abs(balance).toFixed(2)}`;
+  balEl.className = `fin-stat-value balance ${balance >= 0 ? 'positive' : 'negative'}`;
+  document.getElementById('finIncomeCount').textContent = `${filtered.filter(f=>f.type==='income').length} kayıt`;
+  document.getElementById('finExpenseCount').textContent = `${filtered.filter(f=>f.type==='expense').length} kayıt`;
+  document.getElementById('finBalanceSub').textContent = balance >= 0 ? '✓ Karda' : '↓ Zararda';
+
+  const list = document.getElementById('finList');
+  const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+  if (sorted.length === 0) {
+    list.innerHTML = `<div class="fin-empty">Henüz kayıt yok. Gelir veya gider ekle!</div>`;
+    return;
+  }
+  list.innerHTML = sorted.map(f => {
+    const d = new Date(f.date);
+    const time = `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const icon = f.type === 'income' ? '💚' : '🔴';
+    return `<div class="fin-item">
+      <span class="fin-item-icon">${icon}</span>
+      <span class="fin-item-label">${f.desc}</span>
+      <span class="fin-item-time">${time}</span>
+      <span class="fin-item-amount ${f.type}">
+        ${f.type === 'expense' ? '-' : '+'}CA$${f.amount.toFixed(2)}
+      </span>
+      <button class="fin-item-del" onclick="deleteFinance(${f.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ==================== WEEKLY STATS ====================
+function renderStats() {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+
+  const fmt = d => `${d.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()]}`;
+  document.getElementById('statsWeekLabel').textContent = `${fmt(monday)} – ${fmt(sunday)}`;
+
+  // Calc stats
+  const doneTodos = todos.filter(t => t.done).length;
+  const totalTodos = todos.length;
+  const studyThisWeek = studyDays.filter(d => {
+    const sd = new Date(d); return sd >= monday && sd <= sunday;
+  }).length;
+  const habitDone = habits.reduce((s,h) => s + h.done.filter(Boolean).length, 0);
+  const habitTotal = habits.length * 7;
+
+  // Finance this week
+  const weekFinances = finances.filter(f => { const d = new Date(f.date); return d >= monday && d <= sunday; });
+  const weekIncome = weekFinances.filter(f=>f.type==='income').reduce((s,f)=>s+f.amount,0);
+  const weekExpense = weekFinances.filter(f=>f.type==='expense').reduce((s,f)=>s+f.amount,0);
+  const weekNet = weekIncome - weekExpense;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-box">
+      <span class="stat-box-icon">✅</span>
+      <span class="stat-box-val" style="color:var(--mint)">${doneTodos}/${totalTodos}</span>
+      <span class="stat-box-label">Görev</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-box-icon">📚</span>
+      <span class="stat-box-val" style="color:var(--blue)">${studyThisWeek}</span>
+      <span class="stat-box-label">Ders Günü</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-box-icon">🔥</span>
+      <span class="stat-box-val" style="color:var(--coral)">${habitDone}/${habitTotal}</span>
+      <span class="stat-box-label">Alışkanlık</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-box-icon">${weekNet >= 0 ? '💚' : '🔴'}</span>
+      <span class="stat-box-val" style="color:${weekNet>=0?'#2ECC71':'var(--coral)'}">
+        ${weekNet >= 0 ? '+' : '-'}$${Math.abs(weekNet).toFixed(0)}
+      </span>
+      <span class="stat-box-label">Haftalık Net</span>
+    </div>
+  `;
+
+  const bars = [
+    { label: 'Görevler', val: totalTodos > 0 ? doneTodos/totalTodos : 0, display: `${doneTodos}/${totalTodos}`, color: 'var(--mint)' },
+    { label: 'Ders', val: studyThisWeek/7, display: `${studyThisWeek} gün`, color: 'var(--blue)' },
+    { label: 'Alışkanlık', val: habitTotal > 0 ? habitDone/habitTotal : 0, display: `%${Math.round(habitDone/Math.max(habitTotal,1)*100)}`, color: 'var(--coral)' },
+    { label: 'Gelir', val: weekIncome > 0 ? Math.min(weekIncome/(weekIncome+weekExpense),1) : 0, display: `CA$${weekIncome.toFixed(0)}`, color: '#2ECC71' },
+  ];
+
+  document.getElementById('statsChart').innerHTML = bars.map(b => `
+    <div class="stats-bar-row">
+      <span class="stats-bar-label">${b.label}</span>
+      <div class="stats-bar-track">
+        <div class="stats-bar-fill" style="width:${Math.round(b.val*100)}%;background:${b.color}"></div>
+      </div>
+      <span class="stats-bar-val" style="color:${b.color}">${b.display}</span>
+    </div>
+  `).join('');
+}
+
+// ==================== MOOD TRACKER ====================
+const MOOD_MESSAGES = {
+  5: { cls: 'ok',      text: '🌟 Harika hissediyorsun! Bugün verimli bir gün olacak. Hedeflerine odaklan!' },
+  4: { cls: 'ok',      text: '😊 İyi hissediyorsun, devam et! Bugün ders çalışmak için güzel bir gün.' },
+  3: { cls: 'neutral', text: '🌤 Orta hissediyorsun. Küçük molalar ver, kendine iyi bak.' },
+  2: { cls: 'warn',    text: '💙 Bugün kendini iyi hissetmiyorsun. Dersi yarına ertelemek isteyebilirsin — bugün dinlen, yarın daha güçlü dönersin.' },
+  1: { cls: 'warn',    text: '🤗 Zor bir gün. Ders çalışmayı ertele, bugün sadece dinlen ve kendine zaman ayır. Her şey geçer 💙' },
+};
+
+function setMood(val, emoji, label) {
+  const today = getTodayStr();
+  // Save to mood history
+  const existing = (moodHistory || []).findIndex(m => m.date === today);
+  const entry = { date: today, val, emoji, label, time: new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}) };
+  if (existing >= 0) moodHistory[existing] = entry;
+  else moodHistory.push(entry);
+  // Keep last 14 days
+  moodHistory = moodHistory.slice(-14);
+  saveAllEncrypted();
+
+  // Update UI
+  document.querySelectorAll('.mood-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.val) === val);
+  });
+
+  const msg = MOOD_MESSAGES[val];
+  const sug = document.getElementById('moodSuggestion');
+  sug.textContent = msg.text;
+  sug.className = `mood-suggestion show ${msg.cls}`;
+  document.getElementById('moodTimeLabel').textContent = `Bugün ${entry.time}`;
+
+  // If mood is bad (1 or 2), offer to postpone study
+  if (val <= 2) {
+    const todayIdx = studyDays.indexOf(today);
+    if (todayIdx >= 0) {
+      setTimeout(() => {
+        if (confirm('💙 Bugün ders günü işaretli. Yarına ertelemek ister misin?')) {
+          studyDays.splice(todayIdx, 1);
+          // Add tomorrow
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
+          if (!studyDays.includes(tStr)) studyDays.push(tStr);
+          saveAllEncrypted();
+          renderStudyDays();
+          showFeedback('📚', 'Ders <span>yarına ertelendi</span> 💙');
+        }
+      }, 400);
+    }
+  }
+  renderMoodHistory();
+}
+
+function renderMoodHistory() {
+  const hist = document.getElementById('moodHistory');
+  if (!moodHistory || moodHistory.length === 0) { hist.innerHTML = ''; return; }
+  const last7 = moodHistory.slice(-7);
+  const days = ['Pzt','Sal','Çrş','Per','Cum','Cmt','Paz'];
+  hist.innerHTML = last7.map(m => {
+    const d = new Date(m.date);
+    return `<div class="mood-history-item">
+      <span class="mhi-emoji">${m.emoji}</span>
+      <span>${days[d.getDay() === 0 ? 6 : d.getDay()-1]}</span>
+    </div>`;
+  }).join('');
+}
+
+function initMood() {
+  const today = getTodayStr();
+  const todayMood = (moodHistory || []).find(m => m.date === today);
+  if (todayMood) {
+    document.querySelectorAll('.mood-btn').forEach(b => {
+      b.classList.toggle('selected', parseInt(b.dataset.val) === todayMood.val);
+    });
+    const msg = MOOD_MESSAGES[todayMood.val];
+    const sug = document.getElementById('moodSuggestion');
+    sug.textContent = msg.text;
+    sug.className = `mood-suggestion show ${msg.cls}`;
+    document.getElementById('moodTimeLabel').textContent = `Bugün ${todayMood.time}`;
+  }
+  renderMoodHistory();
+}
+
+// ==================== CALENDAR MODAL ====================
+let calModalDay = null;
+
+function calDayClick(d) {
+  calModalDay = d;
+  const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+  document.getElementById('calModalTitle').textContent = `📅 ${d} ${months[currentMonth]} ${currentYear}`;
+  document.getElementById('calModalDesc').value = '';
+  document.getElementById('calModalTime').value = '';
+  renderCalModalEvents();
+  document.getElementById('calModalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('calModalDesc').focus(), 200);
+}
+
+function renderCalModalEvents() {
+  const dayEvents = events.filter(e => {
+    const ed = new Date(e.date);
+    return ed.getDate() === calModalDay && ed.getMonth() === currentMonth && ed.getFullYear() === currentYear;
+  }).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+
+  const container = document.getElementById('calModalEvents');
+  if (dayEvents.length === 0) {
+    container.innerHTML = `<div class="cal-modal-empty">Bu gün için etkinlik yok ✨</div>`;
+    return;
+  }
+  container.innerHTML = dayEvents.map(e => `
+    <div class="event-item" style="margin:0">
+      ${e.time ? `<span class="event-time">🕐 ${e.time}</span>` : ''}
+      <span class="event-title">${e.title}</span>
+      <button class="event-del" onclick="deleteEventModal(${e.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function deleteEventModal(id) {
+  events = events.filter(e => e.id !== id);
+  saveAllEncrypted();
+  renderCalendar();
+  renderCalModalEvents();
+  renderEvents();
+}
+
+function saveCalModal() {
+  const title = document.getElementById('calModalDesc').value.trim();
+  if (!title) return;
+  const time = document.getElementById('calModalTime').value;
+  const date = new Date(currentYear, currentMonth, calModalDay);
+  events.push({ id: Date.now(), title, time: time || '', date: date.toISOString() });
+  saveAllEncrypted();
+  renderCalendar();
+  renderCalModalEvents();
+  renderEvents();
+  document.getElementById('calModalDesc').value = '';
+  document.getElementById('calModalTime').value = '';
+  showFeedback('📅', `<span>${title}</span> takvime eklendi`);
+  scheduleNotifications();
+}
+
+function closeCalModal(e) {
+  if (e && e.target !== document.getElementById('calModalOverlay')) return;
+  document.getElementById('calModalOverlay').classList.remove('open');
+}
+
+// ==================== TODO ====================
+function addTodo(text, time) {
+  const input = document.getElementById('todoInput');
+  const timeInput = document.getElementById('todoTime');
+  const label = text || input.value.trim();
+  const t = time || timeInput.value;
+  if (!label) return;
+  todos.push({ id: Date.now(), label, time: t, done: false });
+  saveTodos();
+  renderTodos();
+  if (!text) { input.value = ''; timeInput.value = ''; }
+  showFeedback('✅', `"<span>${label}</span>" görevlere eklendi`);
+}
+
+function toggleTodo(id) {
+  const todo = todos.find(t => t.id === id);
+  if (todo) { todo.done = !todo.done; saveTodos(); renderTodos(); }
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(t => t.id !== id);
+  saveTodos(); renderTodos();
+}
+
+function saveTodos() { saveAllEncrypted(); }
+
+function renderTodos() {
+  const list = document.getElementById('todoList');
+  const done = todos.filter(t => t.done).length;
+  document.getElementById('todoProgress').textContent = `${done}/${todos.length}`;
+  list.innerHTML = todos.map(t => `
+    <div class="todo-item ${t.done ? 'done' : ''}" onclick="toggleTodo(${t.id})">
+      <div class="todo-check ${t.done ? 'checked' : ''}">${t.done ? '✓' : ''}</div>
+      <span class="todo-label">${t.label}</span>
+      ${t.time ? `<span class="todo-time">🕐 ${t.time}</span>` : ''}
+      <button class="todo-del" onclick="event.stopPropagation();deleteTodo(${t.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+// ==================== HABITS ====================
+function addHabit(name) {
+  const input = document.getElementById('habitInput');
+  const label = name || input.value.trim();
+  if (!label) return;
+  habits.push({ name: label, done: [false,false,false,false,false,false,false], streak: 0 });
+  saveHabits(); renderHabits();
+  if (!name) input.value = '';
+  showFeedback('🔥', `"<span>${label}</span>" alışkanlıklara eklendi`);
+}
+
+function toggleHabit(hIdx, dIdx) {
+  habits[hIdx].done[dIdx] = !habits[hIdx].done[dIdx];
+  // calc streak
+  let streak = 0;
+  for (let i = 6; i >= 0; i--) {
+    if (habits[hIdx].done[i]) streak++; else break;
+  }
+  habits[hIdx].streak = streak;
+  saveHabits(); renderHabits();
+}
+
+function markHabitToday(name) {
+  const todayIdx = 6;
+  const h = habits.find(h => h.name.toLowerCase().includes(name.toLowerCase()));
+  if (h) {
+    h.done[todayIdx] = true;
+    saveHabits(); renderHabits();
+    showFeedback('🔥', `<span>${h.name}</span> bugün tamamlandı`);
+  }
+}
+
+function saveHabits() { saveAllEncrypted(); }
+
+// ==================== STUDY DAYS ====================
+function toggleStudyDay(dateStr) {
+  const idx = studyDays.indexOf(dateStr);
+  if (idx >= 0) studyDays.splice(idx, 1);
+  else studyDays.push(dateStr);
+  saveAllEncrypted();
+  renderStudyDays();
+  const isStudy = studyDays.includes(dateStr);
+  showFeedback('📚', isStudy ? 'Ders günü <span>işaretlendi</span> ✓' : 'Ders günü <span>kaldırıldı</span>');
+}
+
+function markStudyToday() {
+  const today = getTodayStr();
+  if (!studyDays.includes(today)) {
+    studyDays.push(today);
+    saveAllEncrypted();
+    renderStudyDays();
+    showFeedback('📚', 'Bugün ders çalıştın <span>✓ işaretlendi</span>');
+  } else {
+    showFeedback('📚', 'Bugün zaten <span>işaretli</span>');
+  }
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderStudyDays() {
+  const week = document.getElementById('studyWeek');
+  const now = new Date();
+  const dayNames = ['Pt','Sa','Çr','Pr','Cu','Ct','Pz'];
+  let html = '';
+  // show current week Mon-Sun
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const isToday = str === getTodayStr();
+    const isStudy = studyDays.includes(str);
+    html += `<button class="study-day-btn ${isStudy ? 'study' : ''} ${isToday ? 'today-study' : ''}" onclick="toggleStudyDay('${str}')">
+      <span>${dayNames[i]}</span>
+      <span class="day-num">${d.getDate()}</span>
+      ${isStudy ? '<span>✓</span>' : ''}
+    </button>`;
+  }
+  week.innerHTML = html;
+
+  // count this month
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthCount = studyDays.filter(d => d.startsWith(monthStr)).length;
+  document.getElementById('studyTotal').textContent = monthCount > 0 ? `Bu ay ${monthCount} gün ders çalıştın 🎉` : 'Bu hafta hangi günler ders çalışacaksın?';
+}
+
+function renderHabits() {
+  const days = ['P','S','Ç','P','C','C','P'];
+  const grid = document.getElementById('habitGrid');
+  grid.innerHTML = habits.map((h, hi) => `
+    <div class="habit-row">
+      <span class="habit-name">${h.name}</span>
+      <div class="habit-dots">
+        ${h.done.map((d, di) => `
+          <div class="habit-dot ${d ? 'done' : ''}" onclick="toggleHabit(${hi},${di})" title="${days[di]}">${d ? '✓' : days[di]}</div>
+        `).join('')}
+      </div>
+      ${h.streak > 0 ? `<span class="habit-streak">🔥${h.streak}</span>` : `<span class="habit-streak"></span>`}
+    </div>
+  `).join('');
+}
+
+// ==================== NOTES ====================
+function autoSaveNote() {
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer = setTimeout(() => {
+    notes = document.getElementById('notesArea').value;
+    saveAllEncrypted();
+    const el = document.getElementById('notesSaved');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }, 800);
+}
+
+function addNoteVoice(text) {
+  const area = document.getElementById('notesArea');
+  const now = new Date();
+  const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+  area.value += (area.value ? '\n' : '') + `[${timeStr}] ${text}`;
+  notes = area.value;
+  saveAllEncrypted();
+  showFeedback('📝', `Not eklendi: "<span>${text}</span>"`);
+}
+
+function clearNotes() {
+  if (confirm('Notları temizlemek istediğine emin misin?')) {
+    document.getElementById('notesArea').value = '';
+    notes = '';
+    saveAllEncrypted();
+  }
+}
+
+// ==================== CALENDAR ====================
+function renderCalendar() {
+  const months = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+  document.getElementById('calMonthLabel').textContent = `${months[currentMonth]} ${currentYear}`;
+  const grid = document.getElementById('calGrid');
+  const dayNames = ['Pt','Sa','Çr','Pr','Cu','Ct','Pz'];
+  let html = dayNames.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+
+  const first = new Date(currentYear, currentMonth, 1).getDay();
+  const offset = (first === 0) ? 6 : first - 1;
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const today = new Date();
+
+  for (let i = 0; i < offset; i++) {
+    const prevDay = new Date(currentYear, currentMonth, -offset + i + 1).getDate();
+    html += `<div class="cal-day other-month">${prevDay}</div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+    const hasEv = events.some(e => {
+      const ed = new Date(e.date);
+      return ed.getDate() === d && ed.getMonth() === currentMonth && ed.getFullYear() === currentYear;
+    });
+    html += `<div class="cal-day ${isToday ? 'today' : ''} ${hasEv ? 'has-event' : ''}" onclick="calDayClick(${d})">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+
+function addEventVoice(title, time) {
+  const date = new Date();
+  events.push({ id: Date.now(), title, time: time || '', date: date.toISOString() });
+  saveAllEncrypted();
+  renderCalendar(); renderEvents();
+  showFeedback('📅', `<span>${title}</span> takvime eklendi`);
+}
+
+function renderEvents() {
+  const now = new Date();
+  const todayEvents = events.filter(e => {
+    const d = new Date(e.date);
+    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).sort((a,b) => (a.time || '').localeCompare(b.time || ''));
+
+  const list = document.getElementById('eventsList');
+  if (todayEvents.length === 0) {
+    list.innerHTML = `<div style="font-size:0.82rem;color:var(--muted);text-align:center;padding:8px">Bugün için randevu yok ✨</div>`;
+    return;
+  }
+  list.innerHTML = todayEvents.map(e => `
+    <div class="event-item">
+      ${e.time ? `<span class="event-time">🕐 ${e.time}</span>` : ''}
+      <span class="event-title">${e.title}</span>
+      <button class="event-del" onclick="deleteEvent(${e.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function deleteEvent(id) {
+  events = events.filter(e => e.id !== id);
+  saveAllEncrypted();
+  renderCalendar(); renderEvents();
+}
+
+function changeMonth(dir) {
+  currentMonth += dir;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar();
+}
+
+// ==================== TIMER ====================
+function setTimer(minutes) {
+  resetTimer();
+  timerSeconds = minutes * 60;
+  timerTotal = minutes * 60;
+  updateTimerDisplay();
+  document.querySelectorAll('.preset-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.min) === minutes);
+  });
+}
+
+function toggleTimer() {
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timerStartBtn').textContent = '▶ Devam';
+  } else {
+    timerRunning = true;
+    document.getElementById('timerStartBtn').textContent = '⏸ Duraklat';
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerDisplay();
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        document.getElementById('timerStartBtn').textContent = '▶ Başla';
+        showFeedback('🎉', 'Zamanlayıcı bitti! Harika iş çıkardın');
+        try { new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA').play(); } catch(e) {}
+      }
+    }, 1000);
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = timerTotal;
+  document.getElementById('timerStartBtn').textContent = '▶ Başla';
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const progress = 1 - (timerSeconds / timerTotal);
+  const circumference = 2 * Math.PI * 45;
+  const offset = circumference - (progress * circumference);
+  document.getElementById('timerRing').style.strokeDashoffset = circumference - (progress * circumference);
+}
+
+function toggleActivity(el) { el.classList.toggle('selected'); }
+
+// ==================== VOICE ====================
+function setupVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    document.getElementById('voiceStatusText').innerHTML = 'Sesli komut bu tarayıcıda <strong>desteklenmiyor</strong>';
+    document.getElementById('micBtn').disabled = true;
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'tr-TR';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  let currentLang = 'tr-TR';
+  let waitingForCommand = false;
+  let wakeWordTimer = null;
+
+  recognition.onstart = () => {
+    document.getElementById('voiceDot').classList.add('listening');
+    document.getElementById('micBtn').classList.add('active');
+    document.getElementById('voiceStatusText').innerHTML = 'Taby <strong>dinliyor...</strong>';
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+
+    const heard = (final || interim).trim().toLowerCase();
+    document.getElementById('voiceTranscript').textContent = heard || '"Taby..." diyerek başla';
+
+    if (final) {
+      // Check if "taby" or "tabı" or "tabi" wake word is in the command
+      const normalized = final.trim().toLowerCase()
+        .replace(/tabı|tabi|tabii|taby/g, 'taby');
+
+      if (normalized.includes('taby')) {
+        // Strip wake word and process
+        const cmd = normalized
+          .replace(/^.*?taby\s*/i, '')  // remove everything up to and including "taby"
+          .replace(/[:.]/g, ' ')
+          .trim();
+
+        if (cmd.length > 1) {
+          document.getElementById('voiceTranscript').textContent = '✦ ' + cmd;
+          processVoiceCommand(cmd);
+        } else {
+          // Just the wake word, wait for follow-up
+          document.getElementById('voiceStatusText').innerHTML = 'Taby <strong>hazır, söyle!</strong>';
+          document.getElementById('voiceTranscript').textContent = '👂 Dinliyorum...';
+          showFeedback('✦', 'Evet? <span>Söyle!</span>');
+        }
+      }
+      // If no "taby" — ignore silently, don't process
+    }
+  };
+
+  recognition.onend = () => {
+    // Auto-restart if always-on or mic was manually started
+    if (alwaysOn || document.getElementById('micBtn').classList.contains('was-on')) {
+      setTimeout(() => { try { recognition.start(); } catch(e) {} }, 200);
+    } else {
+      document.getElementById('voiceDot').classList.remove('listening');
+      document.getElementById('micBtn').classList.remove('active');
+      document.getElementById('voiceStatusText').innerHTML = 'Taby <strong>hazır</strong>';
+      document.getElementById('voiceTranscript').textContent = '"Taby..." diyerek başla';
+    }
+  };
+
+  // Switch between TR and EN
+  let langToggle = 0;
+  window._switchLang = () => {
+    langToggle = (langToggle + 1) % 2;
+    currentLang = langToggle === 0 ? 'tr-TR' : 'en-US';
+    try { recognition.stop(); } catch(e) {}
+    setTimeout(() => {
+      recognition.lang = currentLang;
+      if (alwaysOn) { try { recognition.start(); } catch(e) {} }
+    }, 300);
+    const flag = currentLang === 'tr-TR' ? '🇹🇷' : '🇬🇧';
+    document.getElementById('langIndicator').textContent = flag + ' ' + (currentLang === 'tr-TR' ? 'TR' : 'EN');
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error !== 'no-speech') {
+      document.getElementById('voiceTranscript').textContent = 'Hata: ' + e.error;
+    }
+    document.getElementById('voiceDot').classList.remove('listening');
+    document.getElementById('micBtn').classList.remove('active');
+  };
+}
+
+function toggleMic() {
+  if (!recognition) return;
+  const btn = document.getElementById('micBtn');
+  try {
+    if (btn.classList.contains('active')) {
+      btn.classList.remove('was-on');
+      recognition.stop();
+    } else {
+      btn.classList.add('was-on');
+      recognition.start();
+    }
+  } catch(e) {}
+}
+
+function toggleAlwaysOn() {
+  alwaysOn = !alwaysOn;
+  const toggle = document.getElementById('alwaysOnToggle');
+  toggle.classList.toggle('on', alwaysOn);
+  if (alwaysOn) {
+    try { recognition.start(); } catch(e) {}
+    showFeedback('✦', 'Taby <span>sürekli dinlemeye</span> geçti');
+  } else {
+    try { recognition.stop(); } catch(e) {}
+    showFeedback('🔇', 'Taby <span>beklemeye</span> geçti');
+  }
+}
+
+function processVoiceCommand(cmd) {
+  console.log('Taby heard:', cmd);
+
+  // ===== YAPILACAK / GÖREV EKLE | ADD TASK =====
+  if (cmd.includes('yapılacak ekle') || cmd.includes('görev ekle') || cmd.includes('ekle') && (cmd.includes('yapılacak') || cmd.includes('görev'))
+    || cmd.includes('add task') || cmd.includes('new task') || cmd.includes('remind me to')) {
+    let text = cmd.replace(/yapılacak ekle|görev ekle|yapılacak|görev|add task|new task|remind me to|ekle/g, '').trim();
+    text = text.replace(/^[:\s]+/, '').trim();
+    const timeMatch = text.match(/(\d{1,2})[:.:](\d{2})/);
+    let time = '';
+    if (timeMatch) { time = `${String(timeMatch[1]).padStart(2,'0')}:${timeMatch[2]}`; text = text.replace(timeMatch[0], '').trim(); }
+    if (text) addTodo(text, time);
+    return;
+  }
+
+  // ===== TAMAMLANDI / DONE =====
+  if ((cmd.includes('tamamlandı') || cmd.includes('tamamladım') || cmd.includes('yaptım') || cmd.includes('bitti') || cmd.includes('done') || cmd.includes('finished') || cmd.includes('completed'))
+    && !cmd.includes('ders') && !cmd.includes('study') && !cmd.includes('alışkanlık') && !cmd.includes('habit')) {
+    const text = cmd.replace(/tamamlandı|tamamladım|yaptım|bitti|done|finished|completed|görevi|task/g, '').replace(/^[:\s]+/, '').trim();
+    const match = todos.find(t => !t.done && t.label.toLowerCase().includes(text.toLowerCase()));
+    if (match) {
+      match.done = true; saveTodos(); renderTodos();
+      showFeedback('✅', `"<span>${match.label}</span>" tamamlandı ✓`);
+    } else if (text) {
+      todos.push({ id: Date.now(), label: text, time: '', done: true });
+      saveTodos(); renderTodos();
+      showFeedback('✅', `"<span>${text}</span>" tamamlandı olarak eklendi`);
+    }
+    return;
+  }
+
+  // ===== NOT AL | NOTE =====
+  if (cmd.includes('not al') || cmd.includes('not ekle') || cmd.includes('not') && cmd.includes('yaz')
+    || cmd.includes('take note') || cmd.includes('note down') || cmd.includes('write down')) {
+    const text = cmd.replace(/not al|not ekle|not|take note|note down|write down|yaz/g, '').replace(/^[:\s]+/, '').trim();
+    if (text) addNoteVoice(text);
+    return;
+  }
+
+  // ===== RANDEVU | EVENT =====
+  if (cmd.includes('randevu') || cmd.includes('etkinlik') || cmd.includes('appointment') || cmd.includes('schedule') || cmd.includes('add event')) {
+    let text = cmd.replace(/randevu ekle|etkinlik ekle|randevu|etkinlik|appointment|schedule|add event/g, '').replace(/^[:\s]+/, '').trim();
+    const timeMatch = text.match(/(\d{1,2})[:.:](\d{2})/);
+    let time = '';
+    if (timeMatch) { time = `${String(timeMatch[1]).padStart(2,'0')}:${timeMatch[2]}`; text = text.replace(timeMatch[0], '').trim(); }
+    if (text) addEventVoice(text, time);
+    return;
+  }
+
+  // ===== VİTAMİN =====
+  if (cmd.includes('vitamin')) {
+    markHabitToday('vitamin'); return;
+  }
+
+  // ===== DERS | STUDY =====
+  if ((cmd.includes('ders') && (cmd.includes('çalıştım') || cmd.includes('yaptım') || cmd.includes('tamamlandı') || cmd.includes('bitti')))
+    || cmd.includes('studied') || cmd.includes('study done') || cmd.includes('study finished')) {
+    markStudyToday(); return;
+  }
+
+  // ===== ALIŞKANLIK | HABIT =====
+  if (cmd.includes('alışkanlık') || cmd.includes('habit')) {
+    const text = cmd.replace(/alışkanlık|habit/g, '').replace(/^[:\s]+/, '').trim();
+    if (text) markHabitToday(text);
+    return;
+  }
+
+  // ===== ZAMANLAYICI | TIMER =====
+  if (cmd.includes('zamanlayıcı') || cmd.includes('timer') || cmd.includes('dakika') || cmd.includes('minute')) {
+    const match = cmd.match(/(\d+)\s*(dakika|minute)/);
+    if (match) {
+      const min = parseInt(match[1]);
+      setTimer(min); toggleTimer();
+      showFeedback('⏱️', `<span>${min} dakika</span> başlatıldı`);
+    } else { toggleTimer(); showFeedback('⏱️', 'Zamanlayıcı <span>başlatıldı</span>'); }
+    return;
+  }
+
+  // ===== DURDUR | PAUSE =====
+  if (cmd.includes('durdur') || cmd.includes('dur') || cmd.includes('pause') || cmd.includes('stop')) {
+    if (timerRunning) { toggleTimer(); showFeedback('⏸️', 'Zamanlayıcı <span>durduruldu</span>'); return; }
+  }
+
+  // ===== SIFIRLA | RESET =====
+  if (cmd.includes('sıfırla') || cmd.includes('reset')) {
+    resetTimer(); showFeedback('↺', 'Zamanlayıcı <span>sıfırlandı</span>'); return;
+  }
+
+  showFeedback('🤔', `Anlayamadım: "<span>${cmd}</span>"`);
+}
+
+// ==================== FEEDBACK TOAST ====================
+let feedbackTimer = null;
+function showFeedback(icon, text) {
+  const fb = document.getElementById('voiceFeedback');
+  document.querySelector('.fb-icon').textContent = icon;
+  document.getElementById('voiceFeedbackText').innerHTML = text;
+  fb.classList.add('show');
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => fb.classList.remove('show'), 3000);
+}
+
+// ==================== SERVICE WORKER ====================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ESC — modal kapat
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('calModalOverlay').classList.remove('open');
+  }
+});
+
+// ==================== START ====================
+init();
+</script>
+</body>
+</html>
